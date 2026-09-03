@@ -15,3 +15,9 @@ header { display: flex; align-items: flex-start; justify-content: space-between;
 .video-guide { display: flex; justify-content: space-between; align-items: center; text-decoration: none; color: #173d35; border: 1px solid #cbd9d1; background: #edf3ed; margin-top: 10px; border-radius: 5px; padding: 11px 13px; font-size: 11px; font-weight: 800; }
 .video-guide span { display: flex; align-items: center; gap: 7px; }
 .video-guide span svg { color: #e05b3d; }
+.set-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.set-inputs label { font: 500 8px 'DM Mono'; color: #6d7e78; letter-spacing: .05em; }
+.set-inputs input { display: block; width: 100%; margin-top: 4px; padding: 8px; border: 1px solid #cbd9d1; border-radius: 4px; background: #fffdf7; color: #173d35; font: 700 15px Manrope; outline-color: #e05b3d; }
+.set-inputs b { position: absolute; margin: -25px 0 0 -22px; font: 700 9px Manrope; color: #6d7e78; }
+.empty-history { color: #718179; font-size: 12px; padding: 10px 0; }
+.delete-workout { width: 34px; height: 34px; display: grid; place-items: center; color: #bb4932; background: #f7e6e0; border-radius: 4px; }

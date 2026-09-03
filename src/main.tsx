@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Activity, Bike, ChevronLeft, CircleCheck, Dumbbell, ExternalLink, Home, Play, Plus, Timer, TrendingUp } from 'lucide-react'
+import { Activity, Bike, ChevronLeft, CircleCheck, Dumbbell, ExternalLink, Home, Play, Plus, Timer, Trash2, TrendingUp } from 'lucide-react'
 import './style.css'
 
 type Exercise = { name: string; sets: number; range: string; cues: string[]; visual: string; previous: string }
 type Workout = { day: string; focus: string; color: string; exercises: Exercise[] }
+type SetLog = { weight: string; reps: string }
+type WorkoutLog = { id: string; focus: string; color: string; date: string; sets: number }
 
 const workouts: Workout[] = [
   { day: 'Dag 1', focus: 'Borst & triceps', color: '#e85d3f', exercises: [
@@ -52,16 +54,21 @@ function App() {
   const [view, setView] = useState<'home' | 'workout' | 'progress'>('home')
   const [workoutIndex, setWorkoutIndex] = useState(0)
   const [exerciseIndex, setExerciseIndex] = useState(0)
-  const [completedSets, setCompletedSets] = useState<number[]>([])
+  const [completedSets, setCompletedSets] = useState<SetLog[]>([])
   const [weight, setWeight] = useState(localStorage.getItem('tempo-weight') ?? '')
   const [kilometers, setKilometers] = useState(localStorage.getItem('tempo-km') ?? '')
+  const [currentSetWeight, setCurrentSetWeight] = useState('10')
+  const [setReps, setSetReps] = useState('10')
+  const [history, setHistory] = useState<WorkoutLog[]>(() => JSON.parse(localStorage.getItem('tempo-history') ?? '[]'))
   const workout = workouts[workoutIndex]
   const exercise = workout.exercises[exerciseIndex]
 
   useEffect(() => { localStorage.setItem('tempo-weight', weight); localStorage.setItem('tempo-km', kilometers) }, [weight, kilometers])
-  const begin = (index: number) => { setWorkoutIndex(index); setExerciseIndex(0); setCompletedSets([]); setView('workout') }
-  const logSet = () => setCompletedSets((sets) => [...sets, sets.length + 1])
-  const nextExercise = () => { if (exerciseIndex < workout.exercises.length - 1) { setExerciseIndex((index) => index + 1); setCompletedSets([]) } else setView('home') }
+  useEffect(() => { localStorage.setItem('tempo-history', JSON.stringify(history)) }, [history])
+  const begin = (index: number) => { setWorkoutIndex(index); setExerciseIndex(0); setCompletedSets([]); setCurrentSetWeight('10'); setSetReps('10'); setView('workout') }
+  const logSet = () => { if (currentSetWeight && setReps) setCompletedSets((sets) => [...sets, { weight: currentSetWeight, reps: setReps }]) }
+  const nextExercise = () => { if (exerciseIndex < workout.exercises.length - 1) { setExerciseIndex((index) => index + 1); setCompletedSets([]) } else { setHistory((logs) => [{ id: crypto.randomUUID(), focus: workout.focus, color: workout.color, date: new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }), sets: workout.exercises.reduce((total, item) => total + item.sets, 0) }, ...logs]); setView('home') } }
+  const deleteWorkout = (id: string) => setHistory((logs) => logs.filter((log) => log.id !== id))
 
   return <main className="app-shell">
     {view === 'home' && <>
@@ -78,10 +85,10 @@ function App() {
       <a className="video-guide" href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${exercise.name} proper form tutorial`)}`} target="_blank" rel="noreferrer"><span><Play size={17} fill="currentColor" /> Bekijk de oefening in beweging</span><ExternalLink size={15} /></a>
       <section className="exercise-title"><p>OEFENING {exerciseIndex + 1}</p><h1>{exercise.name}</h1><div className="prescription"><strong>{exercise.sets} sets</strong><strong>{exercise.range} reps</strong><strong>60 sec rust</strong></div></section>
       <section className="technique"><h3>Techniek</h3>{exercise.cues.map((cue, index) => <p key={cue}><b>{index + 1}</b>{cue}</p>)}</section>
-      <section className="log"><div><p>VORIGE KEER</p><strong>{exercise.previous}</strong></div><button onClick={logSet} disabled={completedSets.length >= exercise.sets}><Plus size={19} /> Set {completedSets.length + 1} loggen</button>{completedSets.length > 0 && <p className="logged">{completedSets.length} van {exercise.sets} sets voltooid</p>}</section>
+      <section className="log"><div><p>VORIGE KEER</p><strong>{exercise.previous}</strong></div><div className="set-inputs"><label>GEWICHT<input inputMode="decimal" value={currentSetWeight} onChange={(event) => setCurrentSetWeight(event.target.value)} /><b>kg</b></label><label>REPS<input inputMode="numeric" value={setReps} onChange={(event) => setSetReps(event.target.value)} /></label></div><button onClick={logSet} disabled={completedSets.length >= exercise.sets || !currentSetWeight || !setReps}><Plus size={19} /> Set {completedSets.length + 1} loggen</button>{completedSets.length > 0 && <p className="logged">{completedSets.map((set, index) => `Set ${index + 1}: ${set.weight} kg x ${set.reps}`).join(' · ')}</p>}</section>
       <button className="next" onClick={nextExercise}>{exerciseIndex === workout.exercises.length - 1 ? 'Training afronden' : 'Volgende oefening'}</button>
     </>}
-    {view === 'progress' && <><header><div><p className="eyebrow">OVERZICHT</p><h1>Jouw progressie</h1></div></header><section className="progress-hero"><Activity size={30} /><h2>Consistentie wint.</h2><p>Je hebt deze week 1 van 4 krachttrainingen afgerond.</p></section><section className="history"><p className="eyebrow">LAATSTE SESSIES</p>{workouts.slice(0, 3).map((item, index) => <article key={item.day}><i style={{ background: item.color }}><Dumbbell size={18} /></i><div><strong>{item.focus}</strong><span>{index === 0 ? 'Vandaag' : `${index + 1} dagen geleden`} · 15 min</span></div><CircleCheck size={21} /></article>)}</section></>}
+    {view === 'progress' && <><header><div><p className="eyebrow">OVERZICHT</p><h1>Jouw progressie</h1></div></header><section className="progress-hero"><Activity size={30} /><h2>Consistentie wint.</h2><p>Je hebt deze week {history.length} van 4 krachttrainingen afgerond.</p></section><section className="history"><p className="eyebrow">GELOGDE WORKOUTS</p>{history.length === 0 ? <p className="empty-history">Nog geen workouts gelogd.</p> : history.map((item) => <article key={item.id}><i style={{ background: item.color }}><Dumbbell size={18} /></i><div><strong>{item.focus}</strong><span>{item.date} · {item.sets} sets</span></div><button className="delete-workout" aria-label={`${item.focus} verwijderen`} onClick={() => deleteWorkout(item.id)}><Trash2 size={18} /></button></article>)}</section></>}
     <nav><button className={view === 'home' ? 'selected' : ''} onClick={() => setView('home')}><Home /><span>Vandaag</span></button><button className={view === 'progress' ? 'selected' : ''} onClick={() => setView('progress')}><TrendingUp /><span>Progressie</span></button></nav>
   </main>
 }
